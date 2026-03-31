@@ -2223,7 +2223,8 @@
           "enum": [
             "none",
             "headers",
-            "oauth"
+            "oauth",
+            "per_user_oauth"
           ],
           "description": "Authentication type for MCP connection"
         },

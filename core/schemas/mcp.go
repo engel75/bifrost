@@ -22,6 +22,20 @@ var (
 	ErrOAuth2RefreshFailed        = errors.New("oauth2 token refresh failed")
 )
 
+// MCPUserOAuthRequiredError is returned when a per-user OAuth MCP server requires
+// the user to authenticate before tool execution can proceed.
+type MCPUserOAuthRequiredError struct {
+	MCPClientID   string `json:"mcp_client_id"`
+	MCPClientName string `json:"mcp_client_name"`
+	AuthorizeURL  string `json:"authorize_url"`
+	SessionID     string `json:"session_id"`
+	Message       string `json:"message"`
+}
+
+func (e *MCPUserOAuthRequiredError) Error() string {
+	return e.Message
+}
+
 // MCPConfig represents the configuration for MCP integration in Bifrost.
 // It enables tool auto-discovery and execution from local and external MCP servers.
 type MCPConfig struct {
@@ -69,9 +83,10 @@ const (
 type MCPAuthType string
 
 const (
-	MCPAuthTypeNone    MCPAuthType = "none"    // No authentication
-	MCPAuthTypeHeaders MCPAuthType = "headers" // Header-based authentication (API keys, etc.)
-	MCPAuthTypeOauth   MCPAuthType = "oauth"   // OAuth 2.0 authentication
+	MCPAuthTypeNone         MCPAuthType = "none"           // No authentication
+	MCPAuthTypeHeaders      MCPAuthType = "headers"        // Header-based authentication (API keys, etc.)
+	MCPAuthTypeOauth        MCPAuthType = "oauth"          // OAuth 2.0 authentication (server-level, admin authenticates once)
+	MCPAuthTypePerUserOauth MCPAuthType = "per_user_oauth" // Per-user OAuth 2.0 authentication (each user authenticates individually)
 )
 
 // MCPClientConfig defines tool filtering for an MCP client.
@@ -150,6 +165,9 @@ func (c *MCPClientConfig) HttpHeaders(ctx context.Context, oauth2Provider OAuth2
 		for key, value := range c.Headers {
 			headers[key] = value.GetValue()
 		}
+	case MCPAuthTypePerUserOauth:
+		// Per-user OAuth: headers are injected per-call in executeToolInternal, not at connection level
+		return headers, nil
 	case MCPAuthTypeNone:
 		// No headers to add
 	default:

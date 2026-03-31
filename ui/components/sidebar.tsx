@@ -528,10 +528,10 @@ export default function AppSidebar() {
 						hasAccess: hasMCPGatewayAccess,
 					},
 					{
-						title: "Tool groups",
+						title: "Virtual MCP Servers",
 						url: "/workspace/mcp-tool-groups",
 						icon: ToolCase,
-						description: "MCP tool groups",
+						description: "Virtual MCP servers",
 						hasAccess: hasMCPGatewayAccess,
 					},
 					{
@@ -661,31 +661,31 @@ export default function AppSidebar() {
 			},
 			...(isDbConnected
 				? [
-					{
-						title: "Prompt Repository",
-						url: "/workspace/prompt-repo",
-						icon: FolderGit,
-						description: "Prompt repository",
-						hasAccess: hasPromptRepositoryAccess || hasPromptDeploymentStrategyAccess,
-						subItems: [
-							{
-								title: "Prompts",
-								url: "/workspace/prompt-repo/prompts",
-								icon: SquareTerminal,
-								description: "Manage prompts",
-								hasAccess: hasPromptRepositoryAccess,
-								tag: "Beta",
-							},
-							{
-								title: "Deployments",
-								url: "/workspace/prompt-repo/deployments",
-								icon: Router,
-								description: "Manage deployment",
-								hasAccess: hasPromptDeploymentStrategyAccess,
-							},
-						],
-					},
-				]
+						{
+							title: "Prompt Repository",
+							url: "/workspace/prompt-repo",
+							icon: FolderGit,
+							description: "Prompt repository",
+							hasAccess: hasPromptRepositoryAccess || hasPromptDeploymentStrategyAccess,
+							subItems: [
+								{
+									title: "Prompts",
+									url: "/workspace/prompt-repo/prompts",
+									icon: SquareTerminal,
+									description: "Manage prompts",
+									hasAccess: hasPromptRepositoryAccess,
+									tag: "Beta",
+								},
+								{
+									title: "Deployments",
+									url: "/workspace/prompt-repo/deployments",
+									icon: Router,
+									description: "Manage deployment",
+									hasAccess: hasPromptDeploymentStrategyAccess,
+								},
+							],
+						},
+					]
 				: []),
 			{
 				title: "Evals",
@@ -725,14 +725,14 @@ export default function AppSidebar() {
 					},
 					...(IS_ENTERPRISE
 						? [
-							{
-								title: "Proxy",
-								url: "/workspace/config/proxy",
-								icon: Globe,
-								description: "Proxy configuration",
-								hasAccess: hasSettingsAccess,
-							},
-						]
+								{
+									title: "Proxy",
+									url: "/workspace/config/proxy",
+									icon: Globe,
+									description: "Proxy configuration",
+									hasAccess: hasSettingsAccess,
+								},
+							]
 						: []),
 					{
 						title: "API Keys",
