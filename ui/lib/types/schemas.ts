@@ -164,6 +164,14 @@ export const vllmKeyConfigSchema = z.object({
 	model_name: z.string().trim().min(1, "Model name is required"),
 });
 
+// EW key config schema
+export const ewKeyConfigSchema = z.object({
+	url: envVarSchema.refine((v) => !!v.value?.trim() || !!v.env_var?.trim(), {
+		message: "Server URL is required",
+	}),
+	model_name: z.string().trim().min(1, "Model name is required"),
+});
+
 // Model provider key schema
 export const modelProviderKeySchema = z
 	.object({
@@ -197,15 +205,14 @@ export const modelProviderKeySchema = z
 		bedrock_key_config: bedrockKeyConfigSchema.optional(),
 		replicate_key_config: replicateKeyConfigSchema.optional(),
 		vllm_key_config: vllmKeyConfigSchema.optional(),
+		ew_key_config: ewKeyConfigSchema.optional(),
 		use_for_batch_api: z.boolean().optional(),
 	})
 	.refine(
 		(data) => {
-			// If bedrock_key_config, azure_key_config, vertex_key_config, or vllm_key_config is present, value is not required
-			if (data.bedrock_key_config || data.azure_key_config || data.vertex_key_config || data.vllm_key_config) {
+			if (data.bedrock_key_config || data.azure_key_config || data.vertex_key_config || data.vllm_key_config || data.ew_key_config) {
 				return true;
 			}
-			// Otherwise, value is required
 			return data.value?.value && data.value?.value?.length > 0;
 		},
 		{

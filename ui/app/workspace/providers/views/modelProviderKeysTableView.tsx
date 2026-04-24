@@ -35,8 +35,10 @@ interface Props {
 
 export default function ModelProviderKeysTableView({ provider, className, headerActions, isKeyless, providerName }: Props) {
 	const isVLLM = (providerName ?? "").toLowerCase() === "vllm";
-	const entityLabel = isVLLM ? "model" : "key";
-	const entityLabelPlural = isVLLM ? "models" : "keys";
+	const isEW = (providerName ?? "").toLowerCase() === "ew";
+	const usesModelAsKey = isVLLM || isEW;
+	const entityLabel = usesModelAsKey ? "model" : "key";
+	const entityLabelPlural = usesModelAsKey ? "models" : "keys";
 	const EntityLabel = entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1);
 	const hasUpdateProviderAccess = useRbac(RbacResource.ModelProvider, RbacOperation.Update);
 	const hasDeleteProviderAccess = useRbac(RbacResource.ModelProvider, RbacOperation.Delete);
@@ -125,7 +127,7 @@ export default function ModelProviderKeysTableView({ provider, className, header
 					<Table className="w-full" data-testid="keys-table">
 						<TableHeader className="w-full">
 							<TableRow>
-								<TableHead>{isVLLM ? "Model" : "API Key"}</TableHead>
+								<TableHead>{usesModelAsKey ? "Model" : "API Key"}</TableHead>
 								<TableHead>Weight</TableHead>
 								<TableHead>Enabled</TableHead>
 								<TableHead className="text-right"></TableHead>

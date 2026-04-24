@@ -1246,6 +1246,14 @@ func (h *ProviderHandler) mergeKeys(oldRawKeys []schemas.Key, oldRedactedKeys []
 				}
 			}
 
+			// Handle EW config redacted values
+			if updateKey.EWKeyConfig != nil && oldRedactedKey.EWKeyConfig != nil && oldRawKey.EWKeyConfig != nil {
+				if updateKey.EWKeyConfig.URL.IsRedacted() &&
+					updateKey.EWKeyConfig.URL.Equals(&oldRedactedKey.EWKeyConfig.URL) {
+					mergedKey.EWKeyConfig.URL = oldRawKey.EWKeyConfig.URL
+				}
+			}
+
 			// Preserve ConfigHash from old key (UI doesn't send it back)
 			mergedKey.ConfigHash = oldRawKey.ConfigHash
 

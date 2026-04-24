@@ -34,6 +34,7 @@ func RunStreamErrorStatusCodeTest(t *testing.T, client *bifrost.Bifrost, ctx con
 		schemas.Vertex:      true,
 		schemas.Replicate:   true,
 		schemas.VLLM:        true,
+		schemas.EW:          true,
 		schemas.HuggingFace: true,
 	}
 	if deploymentBasedProviders[testConfig.Provider] {

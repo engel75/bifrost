@@ -7,7 +7,7 @@ import { EnvVar } from "./schemas";
 export type KnownProvider = (typeof KnownProvidersNames)[number];
 
 // Base provider names - all supported base providers
-export type BaseProvider = "openai" | "anthropic" | "cohere" | "gemini" | "bedrock" | "replicate" | "fireworks";
+export type BaseProvider = "openai" | "anthropic" | "cohere" | "gemini" | "bedrock" | "replicate" | "fireworks" | "ew";
 
 // Branded type for custom provider names to prevent collision with known providers
 export type CustomProviderName = string & { readonly __brand: "CustomProviderName" };
@@ -112,6 +112,18 @@ export const DefaultVLLMKeyConfig: VLLMKeyConfig = {
 	model_name: "",
 } as const satisfies Required<VLLMKeyConfig>;
 
+// EWKeyConfig matching Go's schemas.EWKeyConfig
+export interface EWKeyConfig {
+	url: EnvVar;
+	model_name: string;
+}
+
+// Default EWKeyConfig
+export const DefaultEWKeyConfig: EWKeyConfig = {
+	url: { value: "", env_var: "", from_env: false },
+	model_name: "",
+} as const satisfies Required<EWKeyConfig>;
+
 // Key structure matching Go's schemas.Key
 export interface ModelProviderKey {
 	id: string;
@@ -127,6 +139,7 @@ export interface ModelProviderKey {
 	bedrock_key_config?: BedrockKeyConfig;
 	replicate_key_config?: ReplicateKeyConfig;
 	vllm_key_config?: VLLMKeyConfig;
+	ew_key_config?: EWKeyConfig;
 	config_hash?: string; // Present when config is synced from config.json
 	status?: "unknown" | "success" | "list_models_failed";
 	description?: string;

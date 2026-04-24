@@ -25,6 +25,7 @@ import (
 	"github.com/maximhq/bifrost/core/providers/cerebras"
 	"github.com/maximhq/bifrost/core/providers/cohere"
 	"github.com/maximhq/bifrost/core/providers/elevenlabs"
+	"github.com/maximhq/bifrost/core/providers/ew"
 	"github.com/maximhq/bifrost/core/providers/fireworks"
 	"github.com/maximhq/bifrost/core/providers/gemini"
 	"github.com/maximhq/bifrost/core/providers/groq"
@@ -3748,6 +3749,8 @@ func (bifrost *Bifrost) createBaseProvider(providerKey schemas.ModelProvider, co
 		return replicate.NewReplicateProvider(config, bifrost.logger)
 	case schemas.VLLM:
 		return vllm.NewVLLMProvider(config, bifrost.logger)
+	case schemas.EW:
+		return ew.NewEWProvider(config, bifrost.logger)
 	case schemas.Runway:
 		return runway.NewRunwayProvider(config, bifrost.logger)
 	case schemas.Fireworks:
@@ -6502,6 +6505,11 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 				if key.VLLMKeyConfig.ModelName != "" {
 					deploymentSupported = (key.VLLMKeyConfig.ModelName == model)
 				}
+			} else if baseProviderType == schemas.EW && key.EWKeyConfig != nil {
+				// For EW, check if model name matches the key's configured model
+				if key.EWKeyConfig.ModelName != "" {
+					deploymentSupported = (key.EWKeyConfig.ModelName == model)
+				}
 			}
 
 			if modelSupported && deploymentSupported {
@@ -6510,7 +6518,7 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 		}
 	}
 	if len(supportedKeys) == 0 {
-		if baseProviderType == schemas.Azure || baseProviderType == schemas.Bedrock || baseProviderType == schemas.Vertex || baseProviderType == schemas.Replicate || baseProviderType == schemas.VLLM {
+		if baseProviderType == schemas.Azure || baseProviderType == schemas.Bedrock || baseProviderType == schemas.Vertex || baseProviderType == schemas.Replicate || baseProviderType == schemas.VLLM || baseProviderType == schemas.EW {
 			return schemas.Key{}, fmt.Errorf("no keys found that support model/deployment: %s", model)
 		}
 		return schemas.Key{}, fmt.Errorf("no keys found that support model: %s", model)

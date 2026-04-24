@@ -259,7 +259,7 @@ export const ProviderFormSchema = z
 			// Validate individual key values based on provider type
 			const effectiveProviderType = data.baseProviderType || data.selectedProvider;
 			data.keys.forEach((key, index) => {
-				if (effectiveProviderType !== "vertex" && effectiveProviderType !== "bedrock" && !key.value.trim()) {
+				if (effectiveProviderType !== "vertex" && effectiveProviderType !== "bedrock" && effectiveProviderType !== "vllm" && effectiveProviderType !== "ew" && !key.value.trim()) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
 						message: "API key value cannot be empty",

@@ -88,7 +88,7 @@ export function NetworkFormFragment({ provider }: NetworkFormFragmentProps) {
 	}, [form.formState.isDirty, dispatch]);
 
 	const onSubmit = (data: NetworkOnlyFormSchema) => {
-		const requiresBaseUrl = isCustomProvider || provider.name === "ollama" || provider.name === "sgl";
+		const requiresBaseUrl = isCustomProvider || provider.name === "ollama" || provider.name === "sgl" || provider.name === "ew";
 		if (requiresBaseUrl && (data.network_config?.base_url ?? "").trim() === "") {
 			if ((provider.network_config?.base_url ?? "").trim() !== "") {
 				toast.error("You can't remove network configuration for this provider.");
@@ -151,7 +151,7 @@ export function NetworkFormFragment({ provider }: NetworkFormFragmentProps) {
 		});
 	}, [form, provider.name, provider.network_config]);
 
-	const baseURLRequired = provider.name === "ollama" || provider.name === "sgl" || isCustomProvider;
+	const baseURLRequired = provider.name === "ollama" || provider.name === "sgl" || provider.name === "ew" || isCustomProvider;
 	const hideBaseURL = provider.name === "vllm";
 
 	return (

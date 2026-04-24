@@ -56,6 +56,7 @@ const (
 	XAI         ModelProvider = "xai"
 	Replicate   ModelProvider = "replicate"
 	VLLM        ModelProvider = "vllm"
+	EW          ModelProvider = "ew"
 	Runway      ModelProvider = "runway"
 	Fireworks   ModelProvider = "fireworks"
 )
@@ -94,6 +95,7 @@ var StandardProviders = []ModelProvider{
 	XAI,
 	Replicate,
 	VLLM,
+	EW,
 	Runway,
 	Fireworks,
 }

@@ -55,6 +55,7 @@ export function ApiKeyFormFragment({ control, providerName, form }: Props) {
 	const isAzure = providerName === "azure";
 	const isReplicate = providerName === "replicate";
 	const isVLLM = providerName === "vllm";
+	const isEW = providerName === "ew";
 	const supportsBatchAPI = BATCH_SUPPORTED_PROVIDERS.includes(providerName);
 
 	// Auth type state for Azure: 'api_key', 'entra_id', or 'default_credential'
@@ -638,6 +639,39 @@ export function ApiKeyFormFragment({ control, providerName, form }: Props) {
 								<FormDescription>Exact model name served on this vLLM instance</FormDescription>
 								<FormControl>
 									<Input data-testid="key-input-vllm-model-name" placeholder="meta-llama/Llama-3-70b-hf" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+			)}
+			{isEW && (
+				<div className="space-y-4">
+					<Separator className="my-6" />
+					<FormField
+						control={control}
+						name="key.ew_key_config.url"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Server URL (Required)</FormLabel>
+								<FormDescription>Base URL of the EW/SGLang server (e.g. http://ew-server:8000 or env.EW_URL)</FormDescription>
+								<FormControl>
+									<EnvVarInput data-testid="key-input-ew-url" placeholder="http://ew-server:8000" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={control}
+						name="key.ew_key_config.model_name"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Model Name (Required)</FormLabel>
+								<FormDescription>Exact model name served on this EW instance</FormDescription>
+								<FormControl>
+									<Input data-testid="key-input-ew-model-name" placeholder="Qwen3-Omni" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>

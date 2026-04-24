@@ -64,6 +64,10 @@ type TableKey struct {
 	VLLMUrl       *schemas.EnvVar `gorm:"type:text" json:"vllm_url,omitempty"`
 	VLLMModelName *string         `gorm:"type:varchar(255)" json:"vllm_model_name,omitempty"`
 
+	// EW config fields (embedded)
+	EWUrl         *schemas.EnvVar `gorm:"type:text" json:"ew_url,omitempty"`
+	EWModelName   *string         `gorm:"type:varchar(255)" json:"ew_model_name,omitempty"`
+
 	// Batch API configuration
 	UseForBatchAPI *bool `gorm:"default:false" json:"use_for_batch_api,omitempty"` // Whether this key can be used for batch API operations
 
@@ -80,6 +84,7 @@ type TableKey struct {
 	BedrockKeyConfig   *schemas.BedrockKeyConfig   `gorm:"-" json:"bedrock_key_config,omitempty"`
 	ReplicateKeyConfig *schemas.ReplicateKeyConfig `gorm:"-" json:"replicate_key_config,omitempty"`
 	VLLMKeyConfig      *schemas.VLLMKeyConfig      `gorm:"-" json:"vllm_key_config,omitempty"`
+	EWKeyConfig        *schemas.EWKeyConfig          `gorm:"-" json:"ew_key_config,omitempty"`
 }
 
 // TableName sets the table name for each model
@@ -342,6 +347,24 @@ func (k *TableKey) BeforeSave(tx *gorm.DB) error {
 		k.VLLMModelName = nil
 	}
 
+	if k.EWKeyConfig != nil {
+		if k.EWKeyConfig.URL.GetValue() != "" {
+			u := k.EWKeyConfig.URL
+			k.EWUrl = &u
+		} else {
+			k.EWUrl = nil
+		}
+		if k.EWKeyConfig.ModelName != "" {
+			mn := k.EWKeyConfig.ModelName
+			k.EWModelName = &mn
+		} else {
+			k.EWModelName = nil
+		}
+	} else {
+		k.EWUrl = nil
+		k.EWModelName = nil
+	}
+
 	// Encrypt sensitive fields after serialization
 	if encrypt.IsEnabled() {
 		if err := encryptEnvVar(&k.Value); err != nil {
@@ -410,6 +433,10 @@ func (k *TableKey) BeforeSave(tx *gorm.DB) error {
 		// VLLM
 		if err := encryptEnvVarPtr(&k.VLLMUrl); err != nil {
 			return fmt.Errorf("failed to encrypt vllm url: %w", err)
+		}
+		// EW
+		if err := encryptEnvVarPtr(&k.EWUrl); err != nil {
+			return fmt.Errorf("failed to encrypt ew url: %w", err)
 		}
 		k.EncryptionStatus = EncryptionStatusEncrypted
 	}
@@ -488,6 +515,10 @@ func (k *TableKey) AfterFind(tx *gorm.DB) error {
 		// VLLM
 		if err := decryptEnvVarPtr(&k.VLLMUrl); err != nil {
 			return fmt.Errorf("failed to decrypt vllm url: %w", err)
+		}
+		// EW
+		if err := decryptEnvVarPtr(&k.EWUrl); err != nil {
+			return fmt.Errorf("failed to decrypt ew url: %w", err)
 		}
 	}
 
@@ -637,6 +668,19 @@ func (k *TableKey) AfterFind(tx *gorm.DB) error {
 		k.VLLMKeyConfig = vllmConfig
 	} else {
 		k.VLLMKeyConfig = nil
+	}
+	// Reconstruct EW config if fields are present
+	if k.EWUrl != nil || (k.EWModelName != nil && *k.EWModelName != "") {
+		ewConfig := &schemas.EWKeyConfig{}
+		if k.EWUrl != nil {
+			ewConfig.URL = *k.EWUrl
+		}
+		if k.EWModelName != nil {
+			ewConfig.ModelName = *k.EWModelName
+		}
+		k.EWKeyConfig = ewConfig
+	} else {
+		k.EWKeyConfig = nil
 	}
 	return nil
 }

@@ -418,6 +418,14 @@ func (p *ProviderConfig) Redacted() *ProviderConfig {
 			vllmConfig.URL = *key.VLLMKeyConfig.URL.Redacted()
 			redactedConfig.Keys[i].VLLMKeyConfig = vllmConfig
 		}
+
+		if key.EWKeyConfig != nil {
+			ewConfig := &schemas.EWKeyConfig{
+				ModelName: key.EWKeyConfig.ModelName,
+			}
+			ewConfig.URL = *key.EWKeyConfig.URL.Redacted()
+			redactedConfig.Keys[i].EWKeyConfig = ewConfig
+		}
 	}
 	return &redactedConfig
 }
@@ -580,6 +588,14 @@ func GenerateKeyHash(key schemas.Key) (string, error) {
 	// Hash VLLMKeyConfig
 	if key.VLLMKeyConfig != nil {
 		data, err := sonic.Marshal(key.VLLMKeyConfig)
+		if err != nil {
+			return "", err
+		}
+		hash.Write(data)
+	}
+	// Hash EWKeyConfig
+	if key.EWKeyConfig != nil {
+		data, err := sonic.Marshal(key.EWKeyConfig)
 		if err != nil {
 			return "", err
 		}

@@ -201,6 +201,7 @@ func (cd *ConfigData) UnmarshalJSON(data []byte) error {
 								BedrockKeyConfig:   tableKey.BedrockKeyConfig,
 								ReplicateKeyConfig: tableKey.ReplicateKeyConfig,
 								VLLMKeyConfig:      tableKey.VLLMKeyConfig,
+								EWKeyConfig:        tableKey.EWKeyConfig,
 								ConfigHash:         tableKey.ConfigHash,
 							})
 						}
@@ -844,6 +845,7 @@ func mergeProviderKeys(provider schemas.ModelProvider, fileKeys, dbKeys []schema
 					BedrockKeyConfig:   dbKey.BedrockKeyConfig,
 					ReplicateKeyConfig: dbKey.ReplicateKeyConfig,
 					VLLMKeyConfig:      dbKey.VLLMKeyConfig,
+					EWKeyConfig:        dbKey.EWKeyConfig,
 					Enabled:            dbKey.Enabled,
 					UseForBatchAPI:     dbKey.UseForBatchAPI,
 				})
@@ -922,6 +924,7 @@ func reconcileProviderKeys(provider schemas.ModelProvider, fileKeys, dbKeys []sc
 					BedrockKeyConfig:   dbKey.BedrockKeyConfig,
 					ReplicateKeyConfig: dbKey.ReplicateKeyConfig,
 					VLLMKeyConfig:      dbKey.VLLMKeyConfig,
+					EWKeyConfig:        dbKey.EWKeyConfig,
 					Enabled:            dbKey.Enabled,
 					UseForBatchAPI:     dbKey.UseForBatchAPI,
 				})

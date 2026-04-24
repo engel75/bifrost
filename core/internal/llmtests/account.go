@@ -168,8 +168,9 @@ func (account *ComprehensiveTestAccount) GetConfiguredProviders() ([]schemas.Mod
 		schemas.Nebius,
 		schemas.XAI,
 		schemas.Replicate,
-		schemas.VLLM,
-		schemas.Runway,
+	schemas.VLLM,
+	schemas.EW,
+	schemas.Runway,
 		schemas.Fireworks,
 		ProviderOpenAICustom,
 	}, nil
@@ -471,6 +472,18 @@ func (account *ComprehensiveTestAccount) GetKeysForProvider(ctx context.Context,
 				UseForBatchAPI: bifrost.Ptr(true),
 			},
 		}, nil
+	case schemas.EW:
+		return []schemas.Key{
+			{
+				Value:          *schemas.NewEnvVar("env.EW_API_KEY"),
+				Models:         []string{},
+				Weight:         1.0,
+				UseForBatchAPI: bifrost.Ptr(true),
+				EWKeyConfig: &schemas.EWKeyConfig{
+					URL: *schemas.NewEnvVar("env.EW_BASE_URL"),
+				},
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", providerKey)
 	}
@@ -696,6 +709,20 @@ func (account *ComprehensiveTestAccount) GetConfigForProvider(providerKey schema
 				BaseURL:                        os.Getenv("VLLM_BASE_URL"),
 				DefaultRequestTimeoutInSeconds: 120,
 				MaxRetries:                     10, // vllm is stable
+				RetryBackoffInitial:            5 * time.Second,
+				RetryBackoffMax:                3 * time.Minute,
+			},
+			ConcurrencyAndBufferSize: schemas.ConcurrencyAndBufferSize{
+				Concurrency: Concurrency,
+				BufferSize:  10,
+			},
+		}, nil
+	case schemas.EW:
+		return &schemas.ProviderConfig{
+			NetworkConfig: schemas.NetworkConfig{
+				BaseURL:                        os.Getenv("EW_BASE_URL"),
+				DefaultRequestTimeoutInSeconds: 120,
+				MaxRetries:                     10,
 				RetryBackoffInitial:            5 * time.Second,
 				RetryBackoffMax:                3 * time.Minute,
 			},

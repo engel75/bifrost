@@ -49,6 +49,7 @@ export const ModelPlaceholders = {
 	vllm: "e.g. Qwen/Qwen3-0.6B, Qwen/Qwen3-1.5B",
 	runway: "e.g. gen4_turbo_image_to_video, gen3a_turbo_image_to_video",
 	fireworks: "e.g. accounts/fireworks/models/deepseek-v3p2",
+	ew: "e.g. Qwen3-Omni, Ming-Omni, S2-Pro",
 };
 
 export const isKeyRequiredByProvider: Record<ProviderName, boolean> = {
@@ -75,6 +76,7 @@ export const isKeyRequiredByProvider: Record<ProviderName, boolean> = {
 	runway: true,
 	vllm: false,
 	fireworks: true,
+	ew: false,
 };
 
 export const DefaultNetworkConfig = {
@@ -191,6 +193,21 @@ export const PROVIDER_SUPPORTED_REQUESTS: Record<BaseProvider, string[]> = {
 		"responses",
 		"responses_stream",
 		"embedding",
+	],
+	ew: [
+		"list_models",
+		"text_completion",
+		"text_completion_stream",
+		"chat_completion",
+		"chat_completion_stream",
+		"embedding",
+		"rerank",
+		"speech",
+		"transcription",
+		"transcription_stream",
+		"image_generation",
+		"image_edit",
+		"image_variation",
 	],
 };
 

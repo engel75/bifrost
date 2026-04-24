@@ -289,6 +289,9 @@ func triggerMigrations(ctx context.Context, db *gorm.DB) error {
 	if err := migrationAddVLLMKeyConfigColumns(ctx, db); err != nil {
 		return err
 	}
+	if err := migrationAddEWKeyConfigColumns(ctx, db); err != nil {
+		return err
+	}
 	if err := migrationWidenEncryptedVarcharColumns(ctx, db); err != nil {
 		return err
 	}
@@ -4140,6 +4143,47 @@ func migrationAddVLLMKeyConfigColumns(ctx context.Context, db *gorm.DB) error {
 	}})
 	if err := m.Migrate(); err != nil {
 		return fmt.Errorf("error while running vllm key config columns migration: %s", err.Error())
+	}
+	return nil
+}
+
+// migrationAddEWKeyConfigColumns adds ew_url and ew_model_name columns to the key table
+func migrationAddEWKeyConfigColumns(ctx context.Context, db *gorm.DB) error {
+	m := migrator.New(db, migrator.DefaultOptions, []*migrator.Migration{{
+		ID: "add_ew_key_config_columns",
+		Migrate: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if !migrator.HasColumn(&tables.TableKey{}, "ew_url") {
+				if err := migrator.AddColumn(&tables.TableKey{}, "ew_url"); err != nil {
+					return err
+				}
+			}
+			if !migrator.HasColumn(&tables.TableKey{}, "ew_model_name") {
+				if err := migrator.AddColumn(&tables.TableKey{}, "ew_model_name"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Rollback: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if migrator.HasColumn(&tables.TableKey{}, "ew_url") {
+				if err := migrator.DropColumn(&tables.TableKey{}, "ew_url"); err != nil {
+					return err
+				}
+			}
+			if migrator.HasColumn(&tables.TableKey{}, "ew_model_name") {
+				if err := migrator.DropColumn(&tables.TableKey{}, "ew_model_name"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}})
+	if err := m.Migrate(); err != nil {
+		return fmt.Errorf("error while running ew key config columns migration: %s", err.Error())
 	}
 	return nil
 }

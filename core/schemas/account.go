@@ -25,6 +25,7 @@ type Key struct {
 	HuggingFaceKeyConfig *HuggingFaceKeyConfig `json:"huggingface_key_config,omitempty"` // Hugging Face-specific key configuration
 	ReplicateKeyConfig   *ReplicateKeyConfig   `json:"replicate_key_config,omitempty"`   // Replicate-specific key configuration
 	VLLMKeyConfig        *VLLMKeyConfig        `json:"vllm_key_config,omitempty"`        // vLLM-specific key configuration
+	EWKeyConfig          *EWKeyConfig          `json:"ew_key_config,omitempty"`          // EW/SGLang-specific key configuration
 	Enabled              *bool                 `json:"enabled,omitempty"`                // Whether the key is active (default:true)
 	UseForBatchAPI       *bool                 `json:"use_for_batch_api,omitempty"`      // Whether this key can be used for batch API operations (default:false for new keys, migrated keys default to true)
 	ConfigHash           string                `json:"config_hash,omitempty"`            // Hash of config.json version, used for change detection
@@ -109,8 +110,16 @@ type ReplicateKeyConfig struct {
 // It allows each key to target a different vLLM server URL and model name,
 // enabling per-key routing and round-robin load balancing across multiple vLLM instances.
 type VLLMKeyConfig struct {
-	URL       EnvVar `json:"url"`        // VLLM server base URL (required, supports env. prefix)
-	ModelName string `json:"model_name"` // Exact model name served on this VLLM instance (used for key selection)
+	URL       EnvVar `json:"url"`        // vLLM server base URL (required, supports env. prefix)
+	ModelName string `json:"model_name"` // Exact model name served on this vLLM instance (used for key selection)
+}
+
+// EWKeyConfig represents the EW/SGLang-specific key configuration.
+// It allows each key to target a different SGLang/EW server URL and model name,
+// enabling per-key routing and round-robin load balancing across multiple SGLang instances.
+type EWKeyConfig struct {
+	URL       EnvVar `json:"url"`        // EW/SGLang server base URL (required, supports env. prefix)
+	ModelName string `json:"model_name"` // Exact model name served on this EW instance (used for key selection)
 }
 
 // Account defines the interface for managing provider accounts and their configurations.

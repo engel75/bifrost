@@ -190,4 +190,5 @@ export const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 	gemini: "Google Gemini",
 	vertex: "Vertex AI",
 	cohere: "Cohere",
+	ew: "EW (SGLang)",
 };

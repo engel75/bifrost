@@ -528,6 +528,11 @@ func ModifyExpectationsForProvider(expectations ResponseExpectations, provider s
 		expectations.ShouldHaveUsageStats = true
 		expectations.ShouldHaveLatency = true
 
+	case schemas.EW:
+		// EW/SGLang local inference — OpenAI-compatible
+		expectations.ShouldHaveUsageStats = true
+		expectations.ShouldHaveLatency = true
+
 	case schemas.Runway:
 		// Runway is primarily video/image generation
 		expectations.ShouldHaveUsageStats = false

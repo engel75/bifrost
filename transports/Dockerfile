@@ -14,30 +14,31 @@
   RUN node scripts/fix-paths.js
   # Skip the copy-build step since we'll copy the files in the Go build stage
   
-  # --- Go Build Stage: Compile the Go binary ---
-  FROM golang:1.26.1-alpine3.23@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder
-  WORKDIR /app
-  
-  # Install dependencies including gcc for CGO and sqlite
-  RUN apk add --no-cache gcc musl-dev sqlite-dev binutils binutils-gold
-  
-  # Set environment for CGO-enabled build (required for go-sqlite3)
-  ENV CGO_ENABLED=1 GOOS=linux
-  
-  COPY transports/go.mod transports/go.sum ./
-  RUN ls
-  RUN cat go.mod
-  RUN go mod download
-  
-  # Copy source code and dependencies
-  COPY transports/ ./
-  
-  COPY --from=ui-builder /app/out ./bifrost-http/ui
-  
-  # Build the binary with CGO enabled and static SQLite linking
-  ENV GOWORK=off
-  ARG VERSION=unknown
-  RUN go build \
+# --- Go Build Stage: Compile the Go binary ---
+FROM golang:1.26.1-alpine3.23@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder
+WORKDIR /app
+
+# Install dependencies including gcc for CGO and sqlite
+RUN apk add --no-cache gcc musl-dev sqlite-dev binutils binutils-gold
+
+# Set environment for CGO-enabled build (required for go-sqlite3)
+ENV CGO_ENABLED=1 GOOS=linux
+
+COPY core/ /core/
+COPY framework/ /framework/
+COPY transports/go.mod transports/go.sum ./
+
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t/core\n\t/framework\n)\n' > go.work
+
+RUN go mod download
+
+# Copy source code and dependencies
+COPY transports/ ./
+
+COPY --from=ui-builder /app/out ./bifrost-http/ui
+
+ARG VERSION=1.4.23-ew
+RUN go build \
     -ldflags="-w -s -X main.Version=v${VERSION} -extldflags '-static'" \
     -a -trimpath \
     -tags "sqlite_static" \

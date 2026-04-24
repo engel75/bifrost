@@ -433,6 +433,34 @@ export const ProviderIcons = {
 		);
 	},
 
+	ew: ({ size = "md", className = "" }: IconProps) => {
+		const resolvedSize = resolveSize(size);
+
+		return (
+			<svg
+				width={resolvedSize}
+				height={resolvedSize}
+				viewBox="0 0 100 100"
+				fill="none"
+				xmlns="http://www.w3.org/2000/svg"
+				className={className}
+			>
+				<rect width="100" height="100" rx="20" fill="#6366F1" />
+				<text
+					x="50"
+					y="65"
+					fontSize="50"
+					fontWeight="bold"
+					fill="white"
+					textAnchor="middle"
+					fontFamily="Arial, sans-serif"
+				>
+					E
+				</text>
+			</svg>
+		);
+	},
+
 	openai: ({ size = "md", className = "", theme }: IconProps) => {
 		const resolvedSize = resolveSize(size);
 
