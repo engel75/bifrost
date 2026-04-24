@@ -27,15 +27,17 @@ func TestEW(t *testing.T) {
 	textModel := getEnvWithDefault("EW_TEXT_MODEL", "Qwen/Qwen3-0.6B")
 	reasoningModel := getEnvWithDefault("EW_REASONING_MODEL", "Qwen/Qwen3-0.6B")
 	embeddingModel := getEnvWithDefault("EW_EMBEDDING_MODEL", "Qwen3-Embedding-0.6B")
+	speechModel := getEnvWithDefault("EW_SPEECH_MODEL", "Qwen/Qwen3-0.6B")
 	rerankModel := strings.TrimSpace(os.Getenv("EW_RERANK_MODEL"))
 
 	testConfig := llmtests.ComprehensiveTestConfig{
-		Provider:       schemas.EW,
-		ChatModel:      chatModel,
-		TextModel:      textModel,
-		ReasoningModel: reasoningModel,
-		EmbeddingModel: embeddingModel,
-		RerankModel:    rerankModel,
+		Provider:             schemas.EW,
+		ChatModel:            chatModel,
+		TextModel:            textModel,
+		ReasoningModel:       reasoningModel,
+		EmbeddingModel:       embeddingModel,
+		SpeechSynthesisModel: speechModel,
+		RerankModel:          rerankModel,
 		Scenarios: llmtests.TestScenarios{
 			TextCompletion:        true,
 			TextCompletionStream:  true,
@@ -56,8 +58,8 @@ func TestEW(t *testing.T) {
 			Rerank:                rerankModel != "",
 			ListModels:            true,
 			Reasoning:             true,
-			SpeechSynthesis:       false,
-			SpeechSynthesisStream: false,
+			SpeechSynthesis:       true,
+			SpeechSynthesisStream: true,
 			Transcription:         true,
 			TranscriptionStream:   false,
 			ImageGeneration:       false,
