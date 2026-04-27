@@ -23,18 +23,18 @@ jobs:
 
       - name: Install Docker and BuildX
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends docker.io docker-buildx-plugin docker-compose
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends docker.io docker-buildx-plugin docker-compose
 
       - name: Set up Docker Buildx
         run: |
-          docker buildx install
-          docker buildx create --name ci-builder --use
-          docker buildx inspect --bootstrap
+          sudo docker buildx install
+          sudo docker buildx create --name ci-builder --use
+          sudo docker buildx inspect --bootstrap
 
       - name: Log in to Container Registry
         run: |
-          echo "$PACKAGE_TOKEN" | docker login forge.engelmann.me -u "$PACKAGE_USER" --password-stdin
+          echo "$PACKAGE_TOKEN" | sudo docker login forge.engelmann.me -u "$PACKAGE_USER" --password-stdin
         env:
           PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
           SHORT_SHA=${GITHUB_SHA:0:8}
           IMAGE_TAG="forge.engelmann.me/$GITHUB_REPOSITORY:${BRANCH_NAME}-${SHORT_SHA}"
           
-          docker buildx build \
+          sudo docker buildx build \
             --push \
             --platform linux/amd64 \
             --tag "$IMAGE_TAG" \
