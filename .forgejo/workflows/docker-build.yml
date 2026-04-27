@@ -8,9 +8,9 @@ on:
 
 jobs:
   docker:
-    runs-on: docker
+    runs-on: docker-full
     container:
-      image: alpine:3.20
+      options: --privileged 
     permissions:
       contents: read
       packages: write
