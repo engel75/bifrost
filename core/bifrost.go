@@ -6510,6 +6510,10 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 				if key.EWKeyConfig.ModelName != "" {
 					deploymentSupported = (key.EWKeyConfig.ModelName == model)
 				}
+				// Per-key API toggles: nil-safe (nil receiver returns true).
+				if deploymentSupported && !key.EWKeyConfig.AllowedRequests.IsOperationAllowed(requestType) {
+					deploymentSupported = false
+				}
 			}
 
 			if modelSupported && deploymentSupported {
@@ -6518,7 +6522,10 @@ func (bifrost *Bifrost) selectKeyFromProviderForModel(ctx *schemas.BifrostContex
 		}
 	}
 	if len(supportedKeys) == 0 {
-		if baseProviderType == schemas.Azure || baseProviderType == schemas.Bedrock || baseProviderType == schemas.Vertex || baseProviderType == schemas.Replicate || baseProviderType == schemas.VLLM || baseProviderType == schemas.EW {
+		if baseProviderType == schemas.EW {
+			return schemas.Key{}, fmt.Errorf("no keys found that support model/deployment %q with request %q (check ew_key_config.allowed_requests)", model, requestType)
+		}
+		if baseProviderType == schemas.Azure || baseProviderType == schemas.Bedrock || baseProviderType == schemas.Vertex || baseProviderType == schemas.Replicate || baseProviderType == schemas.VLLM {
 			return schemas.Key{}, fmt.Errorf("no keys found that support model/deployment: %s", model)
 		}
 		return schemas.Key{}, fmt.Errorf("no keys found that support model: %s", model)

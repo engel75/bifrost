@@ -118,8 +118,9 @@ type VLLMKeyConfig struct {
 // It allows each key to target a different SGLang/EW server URL and model name,
 // enabling per-key routing and round-robin load balancing across multiple SGLang instances.
 type EWKeyConfig struct {
-	URL       EnvVar `json:"url"`        // EW/SGLang server base URL (required, supports env. prefix)
-	ModelName string `json:"model_name"` // Exact model name served on this EW instance (used for key selection)
+	URL             EnvVar           `json:"url"`                        // EW/SGLang server base URL (required, supports env. prefix)
+	ModelName       string           `json:"model_name"`                 // Exact model name served on this EW instance (used for key selection)
+	AllowedRequests *AllowedRequests `json:"allowed_requests,omitempty"` // Per-key API toggles. nil ⇒ all APIs allowed.
 }
 
 // Account defines the interface for managing provider accounts and their configurations.

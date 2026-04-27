@@ -65,8 +65,9 @@ type TableKey struct {
 	VLLMModelName *string         `gorm:"type:varchar(255)" json:"vllm_model_name,omitempty"`
 
 	// EW config fields (embedded)
-	EWUrl         *schemas.EnvVar `gorm:"type:text" json:"ew_url,omitempty"`
-	EWModelName   *string         `gorm:"type:varchar(255)" json:"ew_model_name,omitempty"`
+	EWUrl                 *schemas.EnvVar `gorm:"type:text" json:"ew_url,omitempty"`
+	EWModelName           *string         `gorm:"type:varchar(255)" json:"ew_model_name,omitempty"`
+	EWAllowedRequestsJSON *string         `gorm:"type:text" json:"-"` // JSON serialized *schemas.AllowedRequests; nil ⇒ all APIs allowed
 
 	// Batch API configuration
 	UseForBatchAPI *bool `gorm:"default:false" json:"use_for_batch_api,omitempty"` // Whether this key can be used for batch API operations
@@ -360,9 +361,20 @@ func (k *TableKey) BeforeSave(tx *gorm.DB) error {
 		} else {
 			k.EWModelName = nil
 		}
+		if k.EWKeyConfig.AllowedRequests != nil {
+			data, err := json.Marshal(k.EWKeyConfig.AllowedRequests)
+			if err != nil {
+				return fmt.Errorf("failed to marshal ew allowed_requests: %w", err)
+			}
+			s := string(data)
+			k.EWAllowedRequestsJSON = &s
+		} else {
+			k.EWAllowedRequestsJSON = nil
+		}
 	} else {
 		k.EWUrl = nil
 		k.EWModelName = nil
+		k.EWAllowedRequestsJSON = nil
 	}
 
 	// Encrypt sensitive fields after serialization
@@ -670,13 +682,20 @@ func (k *TableKey) AfterFind(tx *gorm.DB) error {
 		k.VLLMKeyConfig = nil
 	}
 	// Reconstruct EW config if fields are present
-	if k.EWUrl != nil || (k.EWModelName != nil && *k.EWModelName != "") {
+	if k.EWUrl != nil || (k.EWModelName != nil && *k.EWModelName != "") || (k.EWAllowedRequestsJSON != nil && *k.EWAllowedRequestsJSON != "") {
 		ewConfig := &schemas.EWKeyConfig{}
 		if k.EWUrl != nil {
 			ewConfig.URL = *k.EWUrl
 		}
 		if k.EWModelName != nil {
 			ewConfig.ModelName = *k.EWModelName
+		}
+		if k.EWAllowedRequestsJSON != nil && *k.EWAllowedRequestsJSON != "" {
+			var allowed schemas.AllowedRequests
+			if err := json.Unmarshal([]byte(*k.EWAllowedRequestsJSON), &allowed); err != nil {
+				return fmt.Errorf("failed to unmarshal ew allowed_requests: %w", err)
+			}
+			ewConfig.AllowedRequests = &allowed
 		}
 		k.EWKeyConfig = ewConfig
 	} else {

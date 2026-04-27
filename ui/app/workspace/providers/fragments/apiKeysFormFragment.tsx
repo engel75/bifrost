@@ -16,6 +16,7 @@ import { isRedacted } from "@/lib/utils/validation";
 import { Info, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Control, UseFormReturn } from "react-hook-form";
+import { EWAllowedApisFields } from "./ewAllowedApisFields";
 
 // Providers that support batch APIs
 const BATCH_SUPPORTED_PROVIDERS = ["openai", "bedrock", "anthropic", "gemini", "azure"];
@@ -677,6 +678,7 @@ export function ApiKeyFormFragment({ control, providerName, form }: Props) {
 							</FormItem>
 						)}
 					/>
+					<EWAllowedApisFields control={control} namePrefix="key.ew_key_config.allowed_requests" />
 				</div>
 			)}
 			{isBedrock && (

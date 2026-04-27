@@ -83,9 +83,38 @@ func (provider *EWProvider) baseURLOrError(key schemas.Key) (string, *schemas.Bi
 	return u, nil
 }
 
+// checkOperationAllowed returns an UnsupportedOperationError when the key has explicit
+// per-key API toggles configured (ew_key_config.allowed_requests) and the requested
+// operation is disabled. nil ⇒ allowed. This is a defensive backstop for the case where
+// a caller pins a specific key (e.g., x-bf-key-id) and bypasses the routing-time filter
+// in selectKeyFromProviderForModel.
+func (provider *EWProvider) checkOperationAllowed(key schemas.Key, op schemas.RequestType) *schemas.BifrostError {
+	if key.EWKeyConfig == nil || key.EWKeyConfig.AllowedRequests == nil {
+		return nil
+	}
+	if key.EWKeyConfig.AllowedRequests.IsOperationAllowed(op) {
+		return nil
+	}
+	return providerUtils.NewUnsupportedOperationError(op, provider.GetProviderKey())
+}
+
+// isResponsesToChatCompletionFallback reports whether the current request is a
+// Responses(Stream) call that has been delegated to ChatCompletion(Stream) internally.
+// Used to avoid re-gating on chat_completion when the upstream Responses op was already gated.
+func isResponsesToChatCompletionFallback(ctx *schemas.BifrostContext) bool {
+	if ctx == nil {
+		return false
+	}
+	v, ok := ctx.Value(schemas.BifrostContextKeyIsResponsesToChatCompletionFallback).(bool)
+	return ok && v
+}
+
 // listModelsByKey performs a list models request for a single EW key,
 // resolving the per-key URL so each backend is queried individually.
 func (provider *EWProvider) listModelsByKey(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostListModelsRequest) (*schemas.BifrostListModelsResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ListModelsRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -118,6 +147,9 @@ func (provider *EWProvider) ListModels(ctx *schemas.BifrostContext, keys []schem
 
 // TextCompletion performs a text completion request to EW's API.
 func (provider *EWProvider) TextCompletion(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostTextCompletionRequest) (*schemas.BifrostTextCompletionResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.TextCompletionRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -140,6 +172,9 @@ func (provider *EWProvider) TextCompletion(ctx *schemas.BifrostContext, key sche
 
 // TextCompletionStream performs a streaming text completion request to EW's API.
 func (provider *EWProvider) TextCompletionStream(ctx *schemas.BifrostContext, postHookRunner schemas.PostHookRunner, key schemas.Key, request *schemas.BifrostTextCompletionRequest) (chan *schemas.BifrostStreamChunk, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.TextCompletionStreamRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -168,6 +203,13 @@ func (provider *EWProvider) TextCompletionStream(ctx *schemas.BifrostContext, po
 
 // ChatCompletion performs a chat completion request to EW's API.
 func (provider *EWProvider) ChatCompletion(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostChatRequest) (*schemas.BifrostChatResponse, *schemas.BifrostError) {
+	// EW Responses() delegates to ChatCompletion() — skip the chat gate when invoked
+	// via Responses(), since Responses already gated upstream.
+	if !isResponsesToChatCompletionFallback(ctx) {
+		if bifrostErr := provider.checkOperationAllowed(key, schemas.ChatCompletionRequest); bifrostErr != nil {
+			return nil, bifrostErr
+		}
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -190,6 +232,13 @@ func (provider *EWProvider) ChatCompletion(ctx *schemas.BifrostContext, key sche
 
 // ChatCompletionStream performs a streaming chat completion request to EW's API.
 func (provider *EWProvider) ChatCompletionStream(ctx *schemas.BifrostContext, postHookRunner schemas.PostHookRunner, key schemas.Key, request *schemas.BifrostChatRequest) (chan *schemas.BifrostStreamChunk, *schemas.BifrostError) {
+	// When this is a Responses→Chat fallback path, ResponsesStream has already gated on
+	// schemas.ResponsesStreamRequest above, so skip the chat-completion-stream gate here.
+	if !isResponsesToChatCompletionFallback(ctx) {
+		if bifrostErr := provider.checkOperationAllowed(key, schemas.ChatCompletionStreamRequest); bifrostErr != nil {
+			return nil, bifrostErr
+		}
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -220,6 +269,9 @@ func (provider *EWProvider) ChatCompletionStream(ctx *schemas.BifrostContext, po
 
 // Embedding performs an embedding request to EW's API.
 func (provider *EWProvider) Embedding(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostEmbeddingRequest) (*schemas.BifrostEmbeddingResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.EmbeddingRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -241,6 +293,10 @@ func (provider *EWProvider) Embedding(ctx *schemas.BifrostContext, key schemas.K
 
 // Responses performs a responses request to EW's API (via chat completion).
 func (provider *EWProvider) Responses(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostResponsesRequest) (*schemas.BifrostResponsesResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ResponsesRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
+	ctx.SetValue(schemas.BifrostContextKeyIsResponsesToChatCompletionFallback, true)
 	chatResponse, err := provider.ChatCompletion(ctx, key, request.ToChatRequest())
 	if err != nil {
 		return nil, err
@@ -254,6 +310,9 @@ func (provider *EWProvider) Responses(ctx *schemas.BifrostContext, key schemas.K
 
 // ResponsesStream performs a streaming responses request to EW's API (via chat completion stream).
 func (provider *EWProvider) ResponsesStream(ctx *schemas.BifrostContext, postHookRunner schemas.PostHookRunner, key schemas.Key, request *schemas.BifrostResponsesRequest) (chan *schemas.BifrostStreamChunk, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ResponsesStreamRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	ctx.SetValue(schemas.BifrostContextKeyIsResponsesToChatCompletionFallback, true)
 	return provider.ChatCompletionStream(
 		ctx,
@@ -264,6 +323,9 @@ func (provider *EWProvider) ResponsesStream(ctx *schemas.BifrostContext, postHoo
 }
 
 func (provider *EWProvider) Speech(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostSpeechRequest) (*schemas.BifrostSpeechResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.SpeechRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -351,6 +413,9 @@ func (provider *EWProvider) callEWRerankEndpoint(
 
 // Rerank performs a rerank request to EW's API.
 func (provider *EWProvider) Rerank(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostRerankRequest) (*schemas.BifrostRerankResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.RerankRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	providerName := provider.GetProviderKey()
 
 	jsonData, bifrostErr := providerUtils.CheckContextAndGetRequestBody(
@@ -420,6 +485,9 @@ func (provider *EWProvider) OCR(ctx *schemas.BifrostContext, key schemas.Key, re
 
 // SpeechStream performs a streaming speech request to EW's API.
 func (provider *EWProvider) SpeechStream(ctx *schemas.BifrostContext, postHookRunner schemas.PostHookRunner, key schemas.Key, request *schemas.BifrostSpeechRequest) (chan *schemas.BifrostStreamChunk, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.SpeechStreamRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -447,6 +515,9 @@ func (provider *EWProvider) SpeechStream(ctx *schemas.BifrostContext, postHookRu
 
 // Transcription performs a transcription request to EW's API.
 func (provider *EWProvider) Transcription(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostTranscriptionRequest) (*schemas.BifrostTranscriptionResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.TranscriptionRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -467,6 +538,9 @@ func (provider *EWProvider) Transcription(ctx *schemas.BifrostContext, key schem
 
 // TranscriptionStream performs a streaming transcription request to EW's API.
 func (provider *EWProvider) TranscriptionStream(ctx *schemas.BifrostContext, postHookRunner schemas.PostHookRunner, key schemas.Key, request *schemas.BifrostTranscriptionRequest) (chan *schemas.BifrostStreamChunk, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.TranscriptionStreamRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -675,6 +749,9 @@ func (provider *EWProvider) TranscriptionStream(ctx *schemas.BifrostContext, pos
 
 // ImageGeneration performs an image generation request to EW's API.
 func (provider *EWProvider) ImageGeneration(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostImageGenerationRequest) (*schemas.BifrostImageGenerationResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ImageGenerationRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -700,6 +777,9 @@ func (provider *EWProvider) ImageGenerationStream(ctx *schemas.BifrostContext, p
 
 // ImageEdit performs an image edit request to EW's API.
 func (provider *EWProvider) ImageEdit(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostImageEditRequest) (*schemas.BifrostImageGenerationResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ImageEditRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr
@@ -725,6 +805,9 @@ func (provider *EWProvider) ImageEditStream(ctx *schemas.BifrostContext, postHoo
 
 // ImageVariation performs an image variation request to EW's API.
 func (provider *EWProvider) ImageVariation(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostImageVariationRequest) (*schemas.BifrostImageGenerationResponse, *schemas.BifrostError) {
+	if bifrostErr := provider.checkOperationAllowed(key, schemas.ImageVariationRequest); bifrostErr != nil {
+		return nil, bifrostErr
+	}
 	baseURL, bifrostErr := provider.baseURLOrError(key)
 	if bifrostErr != nil {
 		return nil, bifrostErr

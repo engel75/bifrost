@@ -343,6 +343,9 @@ func triggerMigrations(ctx context.Context, db *gorm.DB) error {
 	if err := migrationNormalizeOtelTraceType(ctx, db); err != nil {
 		return err
 	}
+	if err := migrationAddEWAllowedRequestsColumn(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -4184,6 +4187,38 @@ func migrationAddEWKeyConfigColumns(ctx context.Context, db *gorm.DB) error {
 	}})
 	if err := m.Migrate(); err != nil {
 		return fmt.Errorf("error while running ew key config columns migration: %s", err.Error())
+	}
+	return nil
+}
+
+// migrationAddEWAllowedRequestsColumn adds the ew_allowed_requests_json column to the
+// config_keys table for per-EW-key API toggles. NULL ⇒ all APIs allowed (backwards compatible).
+func migrationAddEWAllowedRequestsColumn(ctx context.Context, db *gorm.DB) error {
+	m := migrator.New(db, migrator.DefaultOptions, []*migrator.Migration{{
+		ID: "add_ew_allowed_requests_column",
+		Migrate: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if !migrator.HasColumn(&tables.TableKey{}, "ew_allowed_requests_json") {
+				if err := migrator.AddColumn(&tables.TableKey{}, "ew_allowed_requests_json"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Rollback: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if migrator.HasColumn(&tables.TableKey{}, "ew_allowed_requests_json") {
+				if err := migrator.DropColumn(&tables.TableKey{}, "ew_allowed_requests_json"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}})
+	if err := m.Migrate(); err != nil {
+		return fmt.Errorf("error while running ew allowed_requests column migration: %s", err.Error())
 	}
 	return nil
 }

@@ -170,6 +170,9 @@ export const ewKeyConfigSchema = z.object({
 		message: "Server URL is required",
 	}),
 	model_name: z.string().trim().min(1, "Model name is required"),
+	// Per-key API toggles. null ⇒ all APIs allowed (backwards compatible default).
+	// Lazy reference: allowedRequestsSchema is declared further down in this file.
+	allowed_requests: z.lazy(() => allowedRequestsSchema).nullable().optional(),
 });
 
 // Model provider key schema

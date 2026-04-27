@@ -116,12 +116,15 @@ export const DefaultVLLMKeyConfig: VLLMKeyConfig = {
 export interface EWKeyConfig {
 	url: EnvVar;
 	model_name: string;
+	// Per-key API toggles. Omit / null ⇒ all APIs allowed (backwards compatible).
+	allowed_requests?: AllowedRequests | null;
 }
 
 // Default EWKeyConfig
 export const DefaultEWKeyConfig: EWKeyConfig = {
 	url: { value: "", env_var: "", from_env: false },
 	model_name: "",
+	allowed_requests: null,
 } as const satisfies Required<EWKeyConfig>;
 
 // Key structure matching Go's schemas.Key
