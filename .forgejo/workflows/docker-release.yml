@@ -1,13 +1,12 @@
-name: Docker Build
+name: Docker Release
 
 on:
   push:
-    branches:
-      - '**'
-  pull_request:
+    tags:
+      - 'v*'
 
 jobs:
-  docker:
+  release:
     runs-on: node-bookworm
     container:
       image: node:bookworm
@@ -45,16 +44,18 @@ jobs:
           PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 
+      - name: Extract tag name
+        id: tag
+        run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         run: |
-          BRANCH_NAME=${GITHUB_REF##*/}
-          SHORT_SHA=${GITHUB_SHA:0:8}
-          IMAGE_TAG="forge.engelmann.me/$GITHUB_REPOSITORY:${BRANCH_NAME}-${SHORT_SHA}"
+          IMAGE_TAG="forge.engelmann.me/$GITHUB_REPOSITORY:${{ steps.tag.outputs.TAG }}"
           
           docker buildx build \
             --push \
             --platform linux/amd64 \
             --tag "$IMAGE_TAG" \
-            --build-arg VERSION=${GITHUB_SHA} \
+            --build-arg VERSION=${{ steps.tag.outputs.TAG }} \
             --file ./transports/Dockerfile \
             .
