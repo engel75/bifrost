@@ -23,10 +23,12 @@ jobs:
 
       - name: Install Docker and BuildX
         run: |
-          apk add --no-cache docker-cli docker-cli-buildx docker-cli-compose
+          apt-get update
+          apt-get install -y --no-install-recommends docker.io docker-buildx-plugin docker-compose
 
       - name: Set up Docker Buildx
         run: |
+          docker buildx install
           docker buildx create --name ci-builder --use
           docker buildx inspect --bootstrap
 
