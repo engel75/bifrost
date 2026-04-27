@@ -421,7 +421,8 @@ func (p *ProviderConfig) Redacted() *ProviderConfig {
 
 		if key.EWKeyConfig != nil {
 			ewConfig := &schemas.EWKeyConfig{
-				ModelName: key.EWKeyConfig.ModelName,
+				ModelName:       key.EWKeyConfig.ModelName,
+				AllowedRequests: key.EWKeyConfig.AllowedRequests,
 			}
 			ewConfig.URL = *key.EWKeyConfig.URL.Redacted()
 			redactedConfig.Keys[i].EWKeyConfig = ewConfig
