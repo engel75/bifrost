@@ -505,10 +505,11 @@ type OpenAIErrorObject struct {
 }
 
 // OpenAIErrorEnvelope is the JSON shape returned to clients on OpenAI-compat routes.
-// is_bifrost_error and extra_fields are kept at the top level as Bifrost diagnostics —
-// OpenAI clients ignore unknown top-level fields.
+// is_bifrost_error, status_code and extra_fields are kept at the top level as Bifrost
+// diagnostics — OpenAI clients ignore unknown top-level fields.
 type OpenAIErrorEnvelope struct {
 	IsBifrostError bool                            `json:"is_bifrost_error"`
+	StatusCode     *int                            `json:"status_code,omitempty"`
 	Error          OpenAIErrorObject               `json:"error"`
 	ExtraFields    schemas.BifrostErrorExtraFields `json:"extra_fields"`
 }
@@ -657,12 +658,19 @@ func ToOpenAIErrorEnvelope(_ *schemas.BifrostContext, bifrostErr *schemas.Bifros
 		code = inferOpenAICode(upstreamType, message, status)
 	}
 
+	// Param defaulting: if the upstream did not provide one, default to "messages"
+	// for context_length_exceeded (matches the Eiroute reference shape).
+	if param == nil && code != nil && *code == "context_length_exceeded" {
+		param = "messages"
+	}
+
 	if strings.TrimSpace(message) == "" {
 		message = "internal error"
 	}
 
 	return OpenAIErrorEnvelope{
 		IsBifrostError: bifrostErr.IsBifrostError,
+		StatusCode:     bifrostErr.StatusCode,
 		Error: OpenAIErrorObject{
 			Message: message,
 			Type:    openAIType,

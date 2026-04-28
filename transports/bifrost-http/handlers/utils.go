@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/maximhq/bifrost/core/schemas"
+	"github.com/maximhq/bifrost/transports/bifrost-http/integrations"
 	"github.com/maximhq/bifrost/transports/bifrost-http/lib"
 	"github.com/valyala/fasthttp"
 )
@@ -51,7 +52,10 @@ func SendError(ctx *fasthttp.RequestCtx, statusCode int, message string) {
 	SendBifrostError(ctx, bifrostErr)
 }
 
-// SendBifrostError sends a BifrostError response
+// SendBifrostError sends a BifrostError response in the OpenAI-conformant envelope shape.
+// The native /v1/chat/completions etc. handlers all funnel through here, so wrapping with
+// integrations.ToOpenAIErrorEnvelope guarantees clients see {error: {message, type, code, param}}
+// instead of the internal BifrostError JSON.
 func SendBifrostError(ctx *fasthttp.RequestCtx, bifrostErr *schemas.BifrostError) {
 	if bifrostErr.StatusCode != nil {
 		ctx.SetStatusCode(*bifrostErr.StatusCode)
@@ -62,7 +66,8 @@ func SendBifrostError(ctx *fasthttp.RequestCtx, bifrostErr *schemas.BifrostError
 	}
 
 	ctx.SetContentType("application/json")
-	if encodeErr := json.NewEncoder(ctx).Encode(bifrostErr); encodeErr != nil {
+	envelope := integrations.ToOpenAIErrorEnvelope(nil, bifrostErr)
+	if encodeErr := json.NewEncoder(ctx).Encode(envelope); encodeErr != nil {
 		logger.Warn(fmt.Sprintf("Failed to encode error response: %v", encodeErr))
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		ctx.SetBodyString(fmt.Sprintf("Failed to encode error response: %v", encodeErr))
@@ -83,11 +88,10 @@ func streamLargeResponseIfActive(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.B
 	return true
 }
 
-// SendSSEError sends an error in Server-Sent Events format
+// SendSSEError sends an error in Server-Sent Events format using the OpenAI envelope.
 func SendSSEError(ctx *fasthttp.RequestCtx, bifrostErr *schemas.BifrostError) {
-	errorJSON, err := json.Marshal(map[string]interface{}{
-		"error": bifrostErr,
-	})
+	envelope := integrations.ToOpenAIErrorEnvelope(nil, bifrostErr)
+	errorJSON, err := json.Marshal(envelope)
 	if err != nil {
 		logger.Error("failed to marshal error for SSE: %v", err)
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
