@@ -660,6 +660,12 @@ func TestAuthMiddleware_InferenceWhitelist(t *testing.T) {
 			requestPath: "/v1/models",
 			wantPass:    false,
 		},
+		{
+			name:        "exact match still works with query string",
+			whitelist:   []string{"/v1/models"},
+			requestPath: "/v1/models?provider=openai",
+			wantPass:    true,
+		},
 	}
 
 	for _, tc := range cases {

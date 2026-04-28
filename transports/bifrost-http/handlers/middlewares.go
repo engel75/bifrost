@@ -554,10 +554,16 @@ func (m *AuthMiddleware) UpdateWhitelistedRoutes(routes []string) {
 // operator-configured WhitelistedRoutes (exact match, or a "*"-suffix prefix match).
 // Used by both InferenceMiddleware and APIMiddleware so the same Security-tab
 // configuration covers /v1/* inference routes (e.g. /v1/models) and /api/* dashboard routes.
+//
+// The query string is stripped before matching, so an exact entry like "/v1/models"
+// matches whether the caller appends "?foo=bar" or not.
 func (m *AuthMiddleware) isUserWhitelisted(url string) bool {
 	configuredRoutes := m.whitelistedRoutes.Load()
 	if configuredRoutes == nil {
 		return false
+	}
+	if i := strings.IndexByte(url, '?'); i >= 0 {
+		url = url[:i]
 	}
 	if slices.Contains(*configuredRoutes, url) {
 		return true
