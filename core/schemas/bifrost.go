@@ -164,6 +164,7 @@ type BifrostContextKey string
 // BifrostContextKeyRequestType is a context key for the request type.
 const (
 	BifrostContextKeySessionToken                        BifrostContextKey = "bifrost-session-token"                // string (session token for authentication - set by auth middleware)
+	BifrostContextKeyAuthRouteWhitelisted                BifrostContextKey = "bifrost-auth-route-whitelisted"       // bool (set by auth middleware when the request URL matches operator-configured WhitelistedRoutes; downstream plugins must treat the request as anonymous/public and skip auth-derived enforcement like virtual-key-required)
 	BifrostContextKeyVirtualKey                          BifrostContextKey = "x-bf-vk"                              // string
 	BifrostContextKeyAPIKeyName                          BifrostContextKey = "x-bf-api-key"                         // string (explicit key name selection)
 	BifrostContextKeyAPIKeyID                            BifrostContextKey = "x-bf-api-key-id"                      // string (explicit key ID selection, takes priority over name)

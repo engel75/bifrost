@@ -624,6 +624,13 @@ func (m *AuthMiddleware) middleware(shouldSkip func(*configstore.AuthConfig, str
 				return
 			}
 			url := string(ctx.Request.URI().RequestURI())
+			// Mark the request as user-whitelisted so downstream plugins (e.g. governance)
+			// can treat it as anonymous and skip auth-derived enforcement like virtual-key-required.
+			// This is independent of shouldSkip — the flag only fires for operator-configured
+			// WhitelistedRoutes, not for system routes (/health) or DisableAuthOnInference.
+			if m.isUserWhitelisted(url) {
+				ctx.SetUserValue(schemas.BifrostContextKeyAuthRouteWhitelisted, true)
+			}
 			// We skip authorization for the login route
 			if shouldSkip(authConfig, url) {
 				next(ctx)

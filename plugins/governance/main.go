@@ -922,6 +922,15 @@ func (p *GovernancePlugin) validateRequiredHeaders(ctx *schemas.BifrostContext) 
 //   - *EvaluationResult: The governance evaluation result
 //   - *schemas.BifrostError: The error to return if request is not allowed, nil if allowed
 func (p *GovernancePlugin) evaluateGovernanceRequest(ctx *schemas.BifrostContext, evaluationRequest *EvaluationRequest, requestType schemas.RequestType) (*EvaluationResult, *schemas.BifrostError) {
+	// If the request URL matched an operator-configured WhitelistedRoute (set by the
+	// HTTP transport's AuthMiddleware), treat it as anonymous/public — skip the
+	// virtual-key-required check entirely and allow the request through.
+	if bifrost.GetBoolFromContext(ctx, schemas.BifrostContextKeyAuthRouteWhitelisted) {
+		return &EvaluationResult{
+			Decision: DecisionAllow,
+			Reason:   "Request allowed by whitelisted route",
+		}, nil
+	}
 	// Check if authentication is mandatory (either VK or user auth)
 	// Checking if the virtual key is valid or not
 	isVirtualKeyValid := false
