@@ -109,6 +109,11 @@ func isResponsesToChatCompletionFallback(ctx *schemas.BifrostContext) bool {
 	return ok && v
 }
 
+// EWModelOwner is the canonical owned_by value reported for every model that
+// flows through the EW provider, regardless of what the upstream SGLang server
+// declares (SGLang typically reports the original Hugging Face owner).
+const EWModelOwner = "everyware"
+
 // listModelsByKey performs a list models request for a single EW key,
 // resolving the per-key URL so each backend is queried individually.
 func (provider *EWProvider) listModelsByKey(ctx *schemas.BifrostContext, key schemas.Key, request *schemas.BifrostListModelsRequest) (*schemas.BifrostListModelsResponse, *schemas.BifrostError) {
@@ -120,7 +125,7 @@ func (provider *EWProvider) listModelsByKey(ctx *schemas.BifrostContext, key sch
 		return nil, bifrostErr
 	}
 	url := baseURL + providerUtils.GetPathFromContext(ctx, "/v1/models")
-	return openai.ListModelsByKey(
+	resp, bifrostErr := openai.ListModelsByKey(
 		ctx,
 		provider.client,
 		url,
@@ -131,6 +136,16 @@ func (provider *EWProvider) listModelsByKey(ctx *schemas.BifrostContext, key sch
 		providerUtils.ShouldSendBackRawRequest(ctx, provider.sendBackRawRequest),
 		providerUtils.ShouldSendBackRawResponse(ctx, provider.sendBackRawResponse),
 	)
+	if bifrostErr != nil {
+		return nil, bifrostErr
+	}
+	// Override owned_by for every model — SGLang surfaces the upstream Hugging Face
+	// owner, but for EW deployments the canonical owner is "everyware".
+	owner := EWModelOwner
+	for i := range resp.Data {
+		resp.Data[i].OwnedBy = &owner
+	}
+	return resp, nil
 }
 
 // ListModels performs a list models request to EW's API.

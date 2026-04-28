@@ -108,6 +108,18 @@ func TestListModels_QueriesAllBackends(t *testing.T) {
 		t.Errorf("response missing ew/model-from-backend-2, got models: %v", resp.Data)
 	}
 
+	// owned_by must be overridden to "everyware" regardless of what the upstream
+	// SGLang server reported (here: "ew" in the mock body).
+	for _, m := range resp.Data {
+		if m.OwnedBy == nil || *m.OwnedBy != EWModelOwner {
+			got := "<nil>"
+			if m.OwnedBy != nil {
+				got = *m.OwnedBy
+			}
+			t.Errorf("model %s owned_by = %q, want %q", m.ID, got, EWModelOwner)
+		}
+	}
+
 	// KeyStatuses should report success for both keys.
 	if len(resp.KeyStatuses) != 2 {
 		t.Fatalf("expected 2 key statuses, got %d", len(resp.KeyStatuses))
