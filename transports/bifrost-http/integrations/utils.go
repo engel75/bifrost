@@ -493,3 +493,193 @@ func RegisterKVDecoders(store *kvstore.Store) {
 		return &v, sonic.Unmarshal(data, &v)
 	})
 }
+
+// OpenAIErrorObject is the inner error object on OpenAI-compatible HTTP routes:
+//
+//	{"error": {"message", "type", "code", "param"}}
+type OpenAIErrorObject struct {
+	Message string      `json:"message"`
+	Type    string      `json:"type"`
+	Code    *string     `json:"code"`
+	Param   interface{} `json:"param"`
+}
+
+// OpenAIErrorEnvelope is the JSON shape returned to clients on OpenAI-compat routes.
+// is_bifrost_error and extra_fields are kept at the top level as Bifrost diagnostics —
+// OpenAI clients ignore unknown top-level fields.
+type OpenAIErrorEnvelope struct {
+	IsBifrostError bool                            `json:"is_bifrost_error"`
+	Error          OpenAIErrorObject               `json:"error"`
+	ExtraFields    schemas.BifrostErrorExtraFields `json:"extra_fields"`
+}
+
+// sglangTypeToOpenAI maps SGLang's err_type vocabulary
+// (python/sglang/srt/entrypoints/openai/serving_base.py) to the OpenAI error.type values.
+var sglangTypeToOpenAI = map[string]string{
+	"BadRequestError":       "invalid_request_error",
+	"BadRequest":            "invalid_request_error",
+	"DecodeError":           "invalid_request_error",
+	"InternalServerError":   "api_error",
+	"NotImplementedError":   "api_error",
+	"invalid_request_error": "invalid_request_error",
+	// HTTPException variants — SGLang stringifies the status code
+	"401": "authentication_error",
+	"403": "permission_error",
+	"404": "not_found_error",
+	"429": "rate_limit_error",
+}
+
+// openAITypeFromStatus is the fallback mapping when the upstream type is unknown.
+func openAITypeFromStatus(status int) string {
+	switch {
+	case status == 401:
+		return "authentication_error"
+	case status == 403:
+		return "permission_error"
+	case status == 404:
+		return "not_found_error"
+	case status == 429:
+		return "rate_limit_error"
+	case status >= 500:
+		return "api_error"
+	case status >= 400:
+		return "invalid_request_error"
+	default:
+		return "api_error"
+	}
+}
+
+// inferOpenAICode derives an OpenAI-style code string from heuristics on the upstream
+// type and the message. Only used when the upstream did not provide a code.
+func inferOpenAICode(upstreamType, message string, status int) *string {
+	lowMsg := strings.ToLower(message)
+	if strings.Contains(lowMsg, "maximum context length") || strings.Contains(lowMsg, "context length") {
+		return strPtr("context_length_exceeded")
+	}
+	switch upstreamType {
+	case "InternalServerError":
+		return strPtr("internal_server_error")
+	case "NotImplementedError":
+		return strPtr("not_implemented")
+	case "DecodeError":
+		return strPtr("decode_error")
+	}
+	if strings.Contains(strings.ToLower(message), "no keys found") {
+		return strPtr("model_not_found")
+	}
+	if status == 404 {
+		return strPtr("model_not_found")
+	}
+	if status == 429 {
+		return strPtr("rate_limit_exceeded")
+	}
+	return nil
+}
+
+func strPtr(s string) *string { return &s }
+
+// ToOpenAIErrorEnvelope converts a BifrostError into an OpenAI-shaped envelope.
+// Wired in as the ErrorConverter for the OpenAI and Cursor route configs so that
+// OpenAI-compatible clients see the {error: {message, type, code, param}} shape they expect.
+//
+// Bifrost-specific top-level fields (is_bifrost_error, extra_fields) are preserved as
+// diagnostics — OpenAI clients ignore unknown fields, so this is safe.
+func ToOpenAIErrorEnvelope(_ *schemas.BifrostContext, bifrostErr *schemas.BifrostError) interface{} {
+	if bifrostErr == nil {
+		return OpenAIErrorEnvelope{
+			IsBifrostError: false,
+			Error: OpenAIErrorObject{
+				Message: "internal error",
+				Type:    "api_error",
+			},
+		}
+	}
+
+	var (
+		message      string
+		upstreamType string
+		code         *string
+		param        interface{}
+	)
+	if bifrostErr.Error != nil {
+		message = bifrostErr.Error.Message
+		param = bifrostErr.Error.Param
+		if bifrostErr.Error.Type != nil {
+			upstreamType = *bifrostErr.Error.Type
+		}
+		if bifrostErr.Error.Code != nil {
+			code = bifrostErr.Error.Code
+		}
+	}
+
+	// Resolve OpenAI type. Order: bifrost-internal markers, SGLang vocabulary, status-based fallback.
+	var openAIType string
+	bifrostType := ""
+	if bifrostErr.Type != nil {
+		bifrostType = *bifrostErr.Type
+	}
+	switch {
+	case bifrostType == "unsupported_operation":
+		openAIType = "invalid_request_error"
+		if code == nil {
+			code = strPtr("unsupported_operation")
+		}
+	case bifrostType == schemas.RequestCancelled:
+		openAIType = "api_error"
+		if code == nil {
+			code = strPtr("request_cancelled")
+		}
+	case bifrostType == schemas.RequestTimedOut:
+		openAIType = "api_error"
+		if code == nil {
+			code = strPtr("request_timeout")
+		}
+	default:
+		if mapped, ok := sglangTypeToOpenAI[upstreamType]; ok {
+			openAIType = mapped
+		} else if upstreamType != "" && isOpenAIErrorType(upstreamType) {
+			// Upstream already provided a valid OpenAI type — pass through.
+			openAIType = upstreamType
+		} else {
+			status := 0
+			if bifrostErr.StatusCode != nil {
+				status = *bifrostErr.StatusCode
+			}
+			openAIType = openAITypeFromStatus(status)
+		}
+	}
+
+	if code == nil {
+		status := 0
+		if bifrostErr.StatusCode != nil {
+			status = *bifrostErr.StatusCode
+		}
+		code = inferOpenAICode(upstreamType, message, status)
+	}
+
+	if strings.TrimSpace(message) == "" {
+		message = "internal error"
+	}
+
+	return OpenAIErrorEnvelope{
+		IsBifrostError: bifrostErr.IsBifrostError,
+		Error: OpenAIErrorObject{
+			Message: message,
+			Type:    openAIType,
+			Code:    code,
+			Param:   param,
+		},
+		ExtraFields: bifrostErr.ExtraFields,
+	}
+}
+
+// isOpenAIErrorType reports whether s is one of OpenAI's canonical error.type values.
+func isOpenAIErrorType(s string) bool {
+	switch s {
+	case "invalid_request_error", "authentication_error", "permission_error",
+		"not_found_error", "rate_limit_error", "api_error",
+		"invalid_api_error", "overloaded_error":
+		return true
+	}
+	return false
+}

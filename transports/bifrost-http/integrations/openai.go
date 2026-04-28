@@ -515,14 +515,10 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return "", resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 		},
-		ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-			return err
-		},
-		PreCallback: AzureEndpointPreHook(handlerStore),
+		ErrorConverter: ToOpenAIErrorEnvelope,
+		PreCallback:    AzureEndpointPreHook(handlerStore),
 	})
 
 	// Chat completions endpoint
@@ -602,9 +598,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				message.Content.ContentBlocks = nil
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ChatStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostChatResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -614,9 +608,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return "", resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -653,9 +645,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				TextStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostTextCompletionResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -665,9 +655,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return "", resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -723,9 +711,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return response, nil, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ResponsesStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostResponsesStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -739,9 +725,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return string(resp.Type), converted, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 			PreCallback: func(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.BifrostContext, req interface{}) error {
 				hydrateOpenAIRequestFromLargePayloadMetadata(bifrostCtx, req)
@@ -786,9 +770,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 		})
 	}
 
@@ -824,9 +806,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 		})
 	}
 
@@ -854,9 +834,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return nil, errors.New("invalid speech request type")
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				SpeechStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostSpeechStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -866,9 +844,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return "", resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -906,9 +882,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				TranscriptionStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostTranscriptionStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -918,9 +892,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return "", resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -957,9 +929,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ImageGenerationStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostImageGenerationStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -969,9 +939,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return string(resp.Type), resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -1008,9 +976,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ImageGenerationStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostImageGenerationStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -1020,9 +986,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return string(resp.Type), resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -1058,9 +1022,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ImageGenerationStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostImageGenerationStreamResponse) (string, interface{}, error) {
 					if resp.ExtraFields.Provider == schemas.OpenAI {
@@ -1070,9 +1032,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 					}
 					return string(resp.Type), resp, nil
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}
@@ -1105,9 +1065,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoGenerationResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoGenerationResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: func(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.BifrostContext, req interface{}) error {
 				if isAzureSDKRequest(ctx) {
 					bifrostCtx.SetValue(schemas.BifrostContextKeyIsAzureUserAgent, true)
@@ -1144,9 +1102,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoGenerationResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoGenerationResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractVideoIDFromPath(handlerStore),
 		})
 	}
@@ -1178,9 +1134,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoDownloadResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoDownloadResponse) (interface{}, error) {
 				return resp.Content, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractVideoIDFromPath(handlerStore),
 		})
 	}
@@ -1212,9 +1166,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoDeleteResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoDeleteResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractVideoIDFromPath(handlerStore),
 		})
 	}
@@ -1246,9 +1198,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoGenerationResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoGenerationResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractVideoIDFromPath(handlerStore),
 		})
 	}
@@ -1280,9 +1230,7 @@ func CreateOpenAIRouteConfigs(pathPrefix string, handlerStore lib.HandlerStore) 
 			VideoListResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostVideoListResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 		})
 	}
 
@@ -1320,9 +1268,7 @@ func CreateOpenAIListModelsRouteConfigs(pathPrefix string, handlerStore lib.Hand
 			ListModelsResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostListModelsResponse) (interface{}, error) {
 				return openai.ToOpenAIListModelsResponse(resp), nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 		})
 	}
 
@@ -1382,9 +1328,7 @@ func CreateOpenAIBatchRouteConfigs(pathPrefix string, handlerStore lib.HandlerSt
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: func(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.BifrostContext, req interface{}) error {
 				// Provider is parsed from JSON body (extra_body), default to OpenAI if not set
 				if createReq, ok := req.(*schemas.BifrostBatchCreateRequest); ok {
@@ -1493,9 +1437,7 @@ func CreateOpenAIBatchRouteConfigs(pathPrefix string, handlerStore lib.HandlerSt
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractBatchListQueryParams(handlerStore),
 		})
 	}
@@ -1548,9 +1490,7 @@ func CreateOpenAIBatchRouteConfigs(pathPrefix string, handlerStore lib.HandlerSt
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractBatchIDFromPath(handlerStore),
 		})
 	}
@@ -1601,9 +1541,7 @@ func CreateOpenAIBatchRouteConfigs(pathPrefix string, handlerStore lib.HandlerSt
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractBatchIDFromPath(handlerStore),
 		})
 	}
@@ -1654,9 +1592,7 @@ func CreateOpenAIFileRouteConfigs(pathPrefix string, handlerStore lib.HandlerSto
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: func(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.BifrostContext, req interface{}) error {
 				// Default to OpenAI if provider not set from extra_body
 				if bifrostReq, ok := req.(*schemas.BifrostFileUploadRequest); ok {
@@ -1717,9 +1653,7 @@ func CreateOpenAIFileRouteConfigs(pathPrefix string, handlerStore lib.HandlerSto
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractFileListQueryParams(handlerStore),
 		})
 	}
@@ -1767,9 +1701,7 @@ func CreateOpenAIFileRouteConfigs(pathPrefix string, handlerStore lib.HandlerSto
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractFileIDFromPath(handlerStore),
 		})
 	}
@@ -1819,9 +1751,7 @@ func CreateOpenAIFileRouteConfigs(pathPrefix string, handlerStore lib.HandlerSto
 				}
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractFileIDFromPath(handlerStore),
 		})
 	}
@@ -1858,9 +1788,7 @@ func CreateOpenAIFileRouteConfigs(pathPrefix string, handlerStore lib.HandlerSto
 				}
 				return nil, errors.New("invalid file content request type")
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractFileIDFromPath(handlerStore),
 		})
 	}
@@ -2261,9 +2189,7 @@ func CreateOpenAIContainerRouteConfigs(pathPrefix string, handlerStore lib.Handl
 			ContainerCreateResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerCreateResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: func(ctx *fasthttp.RequestCtx, bifrostCtx *schemas.BifrostContext, req interface{}) error {
 				if createReq, ok := req.(*schemas.BifrostContainerCreateRequest); ok {
 					if createReq.Provider == "" {
@@ -2306,9 +2232,7 @@ func CreateOpenAIContainerRouteConfigs(pathPrefix string, handlerStore lib.Handl
 			ContainerListResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerListResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerListQueryParams(handlerStore),
 		})
 	}
@@ -2344,9 +2268,7 @@ func CreateOpenAIContainerRouteConfigs(pathPrefix string, handlerStore lib.Handl
 			ContainerRetrieveResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerRetrieveResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerIDFromPath(handlerStore),
 		})
 	}
@@ -2382,9 +2304,7 @@ func CreateOpenAIContainerRouteConfigs(pathPrefix string, handlerStore lib.Handl
 			ContainerDeleteResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerDeleteResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerIDFromPath(handlerStore),
 		})
 	}
@@ -2496,9 +2416,7 @@ func CreateOpenAIContainerFileRouteConfigs(pathPrefix string, handlerStore lib.H
 			ContainerFileCreateResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerFileCreateResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerFileCreateParams(handlerStore),
 		})
 	}
@@ -2531,9 +2449,7 @@ func CreateOpenAIContainerFileRouteConfigs(pathPrefix string, handlerStore lib.H
 			ContainerFileListResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerFileListResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerFileListQueryParams(handlerStore),
 		})
 	}
@@ -2566,9 +2482,7 @@ func CreateOpenAIContainerFileRouteConfigs(pathPrefix string, handlerStore lib.H
 			ContainerFileRetrieveResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerFileRetrieveResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerAndFileIDFromPath(handlerStore),
 		})
 	}
@@ -2601,9 +2515,7 @@ func CreateOpenAIContainerFileRouteConfigs(pathPrefix string, handlerStore lib.H
 			ContainerFileContentResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerFileContentResponse) (interface{}, error) {
 				return resp.Content, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerAndFileIDFromPath(handlerStore),
 		})
 	}
@@ -2636,9 +2548,7 @@ func CreateOpenAIContainerFileRouteConfigs(pathPrefix string, handlerStore lib.H
 			ContainerFileDeleteResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostContainerFileDeleteResponse) (interface{}, error) {
 				return resp, nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			PreCallback: extractContainerAndFileIDFromPath(handlerStore),
 		})
 	}

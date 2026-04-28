@@ -1014,16 +1014,12 @@ func CreateCursorChatCompletionsRouteConfigs(pathPrefix string, handlerStore lib
 			ResponsesResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostResponsesResponse) (interface{}, error) {
 				return convertResponsesResponseToChatCompletion(resp), nil
 			},
-			ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-				return err
-			},
+			ErrorConverter: ToOpenAIErrorEnvelope,
 			StreamConfig: &StreamConfig{
 				ResponsesStreamResponseConverter: func(ctx *schemas.BifrostContext, resp *schemas.BifrostResponsesStreamResponse) (string, interface{}, error) {
 					return convertResponsesStreamToChatChunk(resp)
 				},
-				ErrorConverter: func(ctx *schemas.BifrostContext, err *schemas.BifrostError) interface{} {
-					return err
-				},
+				ErrorConverter: ToOpenAIErrorEnvelope,
 			},
 		})
 	}

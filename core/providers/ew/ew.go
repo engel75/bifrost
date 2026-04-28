@@ -165,7 +165,7 @@ func (provider *EWProvider) TextCompletion(ctx *schemas.BifrostContext, key sche
 		providerUtils.ShouldSendBackRawRequest(ctx, provider.sendBackRawRequest),
 		providerUtils.ShouldSendBackRawResponse(ctx, provider.sendBackRawResponse),
 		HandleEWResponse,
-		nil,
+		ParseSGLangError,
 		provider.logger,
 	)
 }
@@ -193,7 +193,7 @@ func (provider *EWProvider) TextCompletionStream(ctx *schemas.BifrostContext, po
 		providerUtils.ShouldSendBackRawRequest(ctx, provider.sendBackRawRequest),
 		providerUtils.ShouldSendBackRawResponse(ctx, provider.sendBackRawResponse),
 		provider.GetProviderKey(),
-		nil,
+		ParseSGLangError,
 		postHookRunner,
 		HandleEWResponse,
 		nil,
@@ -225,7 +225,7 @@ func (provider *EWProvider) ChatCompletion(ctx *schemas.BifrostContext, key sche
 		providerUtils.ShouldSendBackRawResponse(ctx, provider.sendBackRawResponse),
 		provider.GetProviderKey(),
 		HandleEWResponse,
-		nil,
+		ParseSGLangError,
 		provider.logger,
 	)
 }
@@ -260,7 +260,7 @@ func (provider *EWProvider) ChatCompletionStream(ctx *schemas.BifrostContext, po
 		postHookRunner,
 		nil,
 		HandleEWResponse,
-		nil,
+		ParseSGLangError,
 		nil,
 		nil,
 		provider.logger,
@@ -391,7 +391,7 @@ func (provider *EWProvider) callEWRerankEndpoint(
 
 	statusCode := resp.StatusCode()
 	if statusCode != fasthttp.StatusOK {
-		return nil, nil, nil, nil, statusCode, latency, openai.ParseOpenAIError(resp, schemas.RerankRequest, provider.GetProviderKey(), request.Model)
+		return nil, nil, nil, nil, statusCode, latency, ParseSGLangError(resp, schemas.RerankRequest, provider.GetProviderKey(), request.Model)
 	}
 
 	body, err := providerUtils.CheckAndDecodeBody(resp)
@@ -618,7 +618,7 @@ func (provider *EWProvider) TranscriptionStream(ctx *schemas.BifrostContext, pos
 		// Check for HTTP errors
 		if resp.StatusCode() != fasthttp.StatusOK {
 			defer providerUtils.ReleaseStreamingResponse(resp)
-			return nil, openai.ParseOpenAIError(resp, schemas.TranscriptionStreamRequest, providerName, request.Model)
+			return nil, ParseSGLangError(resp, schemas.TranscriptionStreamRequest, providerName, request.Model)
 		}
 
 		// Large payload streaming passthrough — pipe raw upstream SSE to client
