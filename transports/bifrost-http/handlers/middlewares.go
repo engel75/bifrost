@@ -550,10 +550,36 @@ func (m *AuthMiddleware) UpdateWhitelistedRoutes(routes []string) {
 	m.whitelistedRoutes.Store(&routes)
 }
 
-// InferenceMiddleware is for inference requests (including MCP routes) if authConfig is set, it will skip authentication if disableAuthOnInference is true.
+// isUserWhitelisted reports whether the given URL is matched by an entry in the
+// operator-configured WhitelistedRoutes (exact match, or a "*"-suffix prefix match).
+// Used by both InferenceMiddleware and APIMiddleware so the same Security-tab
+// configuration covers /v1/* inference routes (e.g. /v1/models) and /api/* dashboard routes.
+func (m *AuthMiddleware) isUserWhitelisted(url string) bool {
+	configuredRoutes := m.whitelistedRoutes.Load()
+	if configuredRoutes == nil {
+		return false
+	}
+	if slices.Contains(*configuredRoutes, url) {
+		return true
+	}
+	return slices.IndexFunc(*configuredRoutes, func(route string) bool {
+		if strings.HasSuffix(route, "*") {
+			return strings.HasPrefix(url, strings.TrimSuffix(route, "*"))
+		}
+		return false
+	}) != -1
+}
+
+// InferenceMiddleware is for inference requests (including MCP routes). If authConfig is set,
+// it will skip authentication when DisableAuthOnInference is true OR when the URL matches
+// the operator-configured WhitelistedRoutes (e.g. an entry "/v1/models" makes that endpoint
+// publicly accessible without an Authorization header).
 func (m *AuthMiddleware) InferenceMiddleware() schemas.BifrostHTTPMiddleware {
 	return m.middleware(func(authConfig *configstore.AuthConfig, url string) bool {
-		return authConfig.DisableAuthOnInference
+		if authConfig.DisableAuthOnInference {
+			return true
+		}
+		return m.isUserWhitelisted(url)
 	})
 }
 
@@ -582,18 +608,7 @@ func (m *AuthMiddleware) APIMiddleware() schemas.BifrostHTTPMiddleware {
 			}) != -1 {
 			return true
 		}
-		// Check user-configured whitelisted routes
-		if configuredRoutes := m.whitelistedRoutes.Load(); configuredRoutes != nil {
-			if slices.Contains(*configuredRoutes, url) || slices.IndexFunc(*configuredRoutes, func(route string) bool {
-				if strings.HasSuffix(route, "*") {
-					return strings.HasPrefix(url, strings.TrimSuffix(route, "*"))
-				}
-				return false
-			}) != -1 {
-				return true
-			}
-		}
-		return false
+		return m.isUserWhitelisted(url)
 	})
 }
 

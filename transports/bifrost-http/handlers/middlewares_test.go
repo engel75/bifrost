@@ -624,6 +624,76 @@ func TestAuthMiddleware_EnabledAuthConfig_NoAuth(t *testing.T) {
 	}
 }
 
+// TestAuthMiddleware_InferenceWhitelist tests that operator-configured WhitelistedRoutes
+// also bypass authentication on the InferenceMiddleware path (e.g. /v1/models can be made
+// publicly accessible without an Authorization header).
+func TestAuthMiddleware_InferenceWhitelist(t *testing.T) {
+	SetLogger(&mockLogger{})
+
+	cases := []struct {
+		name        string
+		whitelist   []string
+		requestPath string
+		wantPass    bool
+	}{
+		{
+			name:        "exact match passes",
+			whitelist:   []string{"/v1/models"},
+			requestPath: "/v1/models",
+			wantPass:    true,
+		},
+		{
+			name:        "wildcard match passes",
+			whitelist:   []string{"/v1/*"},
+			requestPath: "/v1/models",
+			wantPass:    true,
+		},
+		{
+			name:        "non-matching path is blocked",
+			whitelist:   []string{"/v1/models"},
+			requestPath: "/v1/chat/completions",
+			wantPass:    false,
+		},
+		{
+			name:        "empty whitelist still blocks",
+			whitelist:   []string{},
+			requestPath: "/v1/models",
+			wantPass:    false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			am := &AuthMiddleware{}
+			am.UpdateAuthConfig(&configstore.AuthConfig{
+				AdminUserName:          schemas.NewEnvVar("admin"),
+				AdminPassword:          schemas.NewEnvVar("hashedpassword"),
+				IsEnabled:              true,
+				DisableAuthOnInference: false,
+			})
+			am.UpdateWhitelistedRoutes(tc.whitelist)
+
+			ctx := &fasthttp.RequestCtx{}
+			ctx.Request.SetRequestURI(tc.requestPath)
+
+			nextCalled := false
+			middleware := am.InferenceMiddleware()
+			middleware(func(ctx *fasthttp.RequestCtx) {
+				nextCalled = true
+			})(ctx)
+
+			if tc.wantPass && !nextCalled {
+				t.Errorf("path %q with whitelist %v: expected next to be called, got 401 (status=%d)",
+					tc.requestPath, tc.whitelist, ctx.Response.StatusCode())
+			}
+			if !tc.wantPass && nextCalled {
+				t.Errorf("path %q with whitelist %v: expected 401, but next was called",
+					tc.requestPath, tc.whitelist)
+			}
+		})
+	}
+}
+
 // TestAuthMiddleware_WhitelistedRoutes tests that whitelisted routes bypass auth
 func TestAuthMiddleware_WhitelistedRoutes(t *testing.T) {
 	SetLogger(&mockLogger{})

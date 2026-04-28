@@ -389,15 +389,16 @@ export default function SecurityView() {
 							</label>
 							<p className="text-muted-foreground text-sm">
 								Comma-separated list of routes that bypass the auth middleware. Requests to these routes will not require authentication.
-								System routes like <b>/health</b>, <b>/api/session/login</b>, and <b>/api/session/is-auth-enabled</b> are always whitelisted
-								regardless of this setting.
+								Works for dashboard routes (<b>/api/...</b>) and inference routes (e.g. <b>/v1/models</b>). Trailing <b>*</b> matches a prefix
+								(e.g. <b>/v1/*</b>). System routes like <b>/health</b>, <b>/api/session/login</b>, and <b>/api/session/is-auth-enabled</b>
+								are always whitelisted regardless of this setting.
 							</p>
 						</div>
 						<Textarea
 							id="whitelisted-routes"
 							data-testid="whitelisted-routes-textarea"
 							className="h-24"
-							placeholder="/api/custom-webhook, /api/public-endpoint"
+							placeholder="/v1/models, /api/custom-webhook, /v1/*"
 							value={localValues.whitelisted_routes}
 							onChange={(e) => handleWhitelistedRoutesChange(e.target.value)}
 						/>
