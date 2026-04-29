@@ -26,9 +26,13 @@ ENV CGO_ENABLED=1 GOOS=linux
 
 COPY core/ /core/
 COPY framework/ /framework/
+# Include all plugins as local workspace modules so our forked plugin code
+# (e.g. governance changes) is built from local source instead of the version
+# pinned in transports/go.mod from the upstream module cache.
+COPY plugins/ /plugins/
 COPY transports/go.mod transports/go.sum ./
 
-RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t/core\n\t/framework\n)\n' > go.work
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t/core\n\t/framework\n\t/plugins/governance\n\t/plugins/litellmcompat\n\t/plugins/logging\n\t/plugins/maxim\n\t/plugins/mocker\n\t/plugins/otel\n\t/plugins/semanticcache\n\t/plugins/telemetry\n)\n' > go.work
 
 RUN go mod download
 
