@@ -120,3 +120,6 @@ terraform.tfstate.backup
 # Bifrost benchmarking
 bifrost-benchmarking
 .gitnexus
+
+# opencode
+.sisyphus/
